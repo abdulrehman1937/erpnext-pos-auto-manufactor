@@ -27,6 +27,7 @@ app_license = "mit"
 # include js, css files in header of desk.html
 # app_include_css = "/assets/pos_auto_manufacture/css/pos_auto_manufacture.css"
 # app_include_js = "/assets/pos_auto_manufacture/js/pos_auto_manufacture.js"
+app_include_js = "/assets/pos_auto_manufacture/js/pos_invoice.js"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/pos_auto_manufacture/css/pos_auto_manufacture.css"
@@ -139,6 +140,12 @@ app_license = "mit"
 # 		"on_trash": "method"
 # 	}
 # }
+# This hook links the server-side function to the 'on_submit' event of the Sales Invoice.
+doc_events = {
+    "Sales Invoice": {
+        "on_submit": "pos_auto_manufacture.automanufacture.manufacturing_handler.create_manufacture_entry_from_pos"
+    }
+}
 
 # Scheduled Tasks
 # ---------------
