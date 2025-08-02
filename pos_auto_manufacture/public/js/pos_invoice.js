@@ -1,33 +1,16 @@
-frappe.ui.form.on('Sales Invoice Item', {
-    /**
-     * This event triggers when the item_code field is set or changed in a row
-     * of the items table in the POS.
-     */
-    item_code: function(frm, cdt, cdn) {
-        console.log("new version");
+// Global variables to track warnings and debounce
+let warningShown = new Set();
+let stockCheckTimeout = null;
+
+function checkStockLevels(frm, cdt, cdn) {
+    try {
+        // Clear any existing timeout
+        if (stockCheckTimeout) {
+            clearTimeout(stockCheckTimeout);
+        }
         
-        // Use setTimeout to ensure the row is properly initialized
-        setTimeout(() => {
-            console.log("new version");
-            this.checkStockLevels(frm, cdt, cdn);
-        }, 100);
-    },
-    
-    /**
-     * This event triggers when the quantity is changed, so we re-check stock levels.
-     */
-    qty: function(frm, cdt, cdn) {
-        // Use setTimeout to ensure the row is properly initialized
-        setTimeout(() => {
-            this.checkStockLevels(frm, cdt, cdn);
-        }, 100);
-    },
-    
-    /**
-     * Centralized function to check stock levels with comprehensive error handling
-     */
-    checkStockLevels: function(frm, cdt, cdn) {
-        try {
+        // Set a new timeout to debounce the calls
+        stockCheckTimeout = setTimeout(() => {
             // Multiple ways to get the row data safely
             let row = null;
             
@@ -63,11 +46,20 @@ frappe.ui.form.on('Sales Invoice Item', {
                 return; // No need to check stock if no item or quantity
             }
             
+            // Create a unique key for this item and quantity combination
+            const warningKey = `${row.item_code}_${row.qty}_${row.warehouse || 'default'}`;
+            
+            // Check if we've already shown a warning for this combination
+            if (warningShown.has(warningKey)) {
+                console.log('Warning already shown for:', warningKey);
+                return;
+            }
+            
             console.log('Checking stock levels for item:', row.item_code, 'qty:', row.qty);
             
             // Make the API call with comprehensive error handling
             frappe.call({
-                method: "pos_auto_manufacture.api.stock_checker.check_bom_stock_levels",
+                method: "pos_auto_manufacture.api.check_bom_stock_levels",
                 args: {
                     item_code: row.item_code,
                     qty: parseFloat(row.qty) || 0,
@@ -76,6 +68,9 @@ frappe.ui.form.on('Sales Invoice Item', {
                 callback: function(response) {
                     try {
                         if (response && response.message && Array.isArray(response.message) && response.message.length > 0) {
+                            // Mark this warning as shown
+                            warningShown.add(warningKey);
+                            
                             // Build warning message
                             let warning_message = `<b>Warning: Low stock for ${row.item_name || row.item_code} ingredients:</b><br><ul>`;
                             
@@ -102,9 +97,47 @@ frappe.ui.form.on('Sales Invoice Item', {
                     console.error('Error checking BOM stock levels:', error);
                 }
             });
-            
-        } catch (error) {
-            console.error('Error in checkStockLevels:', error);
-        }
+        }, 300); // 300ms debounce delay
+        
+    } catch (error) {
+        console.error('Error in checkStockLevels:', error);
+    }
+}
+
+// Function to clear warnings when form is refreshed or reset
+function clearStockWarnings() {
+    warningShown.clear();
+    if (stockCheckTimeout) {
+        clearTimeout(stockCheckTimeout);
+        stockCheckTimeout = null;
+    }
+}
+
+frappe.ui.form.on('Sales Invoice Item', {
+    /**
+     * This event triggers when the item_code field is set or changed in a row
+     * of the items table in the POS.
+     */
+    item_code: function(frm, cdt, cdn) {
+        console.log("Item code changed");
+        checkStockLevels(frm, cdt, cdn);
+    },
+    
+    /**
+     * This event triggers when the quantity is changed, so we re-check stock levels.
+     */
+    qty: function(frm, cdt, cdn) {
+        console.log("Quantity changed");
+        checkStockLevels(frm, cdt, cdn);
+    }
+});
+
+// Clear warnings when the form is refreshed or when a new invoice is created
+frappe.ui.form.on('Sales Invoice', {
+    refresh: function(frm) {
+        clearStockWarnings();
+    },
+    before_save: function(frm) {
+        clearStockWarnings();
     }
 });
