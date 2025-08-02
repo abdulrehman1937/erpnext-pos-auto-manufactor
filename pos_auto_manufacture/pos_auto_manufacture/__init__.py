@@ -1,8 +1,6 @@
-__version__ = "0.0.1"
-
-from .pos_auto_manufacture.pos_auto_manufacture import (
-    create_manufacture_entry_from_pos,
+from .pos_auto_manufacture import (
     calculate_total_materials_required,
+    create_manufacture_entry_from_pos,
     handle_pos_return_or_cancel,
     submit_manufacturing_entries,
     track_manufacturing_wastage,
@@ -30,8 +28,8 @@ from .pos_auto_manufacture.pos_auto_manufacture import (
 )
 
 __all__ = [
-    'create_manufacture_entry_from_pos',
     'calculate_total_materials_required',
+    'create_manufacture_entry_from_pos',
     'handle_pos_return_or_cancel',
     'submit_manufacturing_entries',
     'track_manufacturing_wastage',

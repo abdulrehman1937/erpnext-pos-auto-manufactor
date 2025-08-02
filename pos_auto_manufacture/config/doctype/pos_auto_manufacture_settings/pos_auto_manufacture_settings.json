@@ -1,0 +1,227 @@
+{
+    "actions": [],
+    "allow_rename": 1,
+    "creation": "2024-01-01 00:00:00.000000",
+    "doctype": "DocType",
+    "custom": 1,
+    "engine": "InnoDB",
+    "field_order": [
+        "wastage_tracking_section",
+        "enable_wastage_tracking",
+        "default_wastage_percentage",
+        "wastage_item_field",
+        "track_actual_vs_expected",
+        "nested_bom_section",
+        "enable_nested_bom_handling",
+        "check_stock_before_manufacturing",
+        "create_nested_work_orders",
+        "return_handling_section",
+        "enable_return_handling",
+        "create_reverse_entries",
+        "return_materials_to_warehouse",
+        "cancellation_section",
+        "enable_cancellation_handling",
+        "cancel_related_work_orders",
+        "cancel_related_stock_entries",
+        "logging_section",
+        "enable_logging",
+        "log_level",
+        "log_manufacturing_entries",
+        "log_errors",
+        "warehouse_section",
+        "use_same_warehouse_for_wip",
+        "default_wip_warehouse",
+        "default_fg_warehouse"
+    ],
+    "fields": [
+        {
+            "fieldname": "wastage_tracking_section",
+            "fieldtype": "Section Break",
+            "label": "Wastage Tracking"
+        },
+        {
+            "default": 1,
+            "fieldname": "enable_wastage_tracking",
+            "fieldtype": "Check",
+            "label": "Enable Wastage Tracking"
+        },
+        {
+            "default": 5.0,
+            "fieldname": "default_wastage_percentage",
+            "fieldtype": "Float",
+            "label": "Default Wastage Percentage",
+            "depends_on": "eval:doc.enable_wastage_tracking"
+        },
+        {
+            "default": "wastage_item",
+            "fieldname": "wastage_item_field",
+            "fieldtype": "Data",
+            "label": "Wastage Item Field",
+            "depends_on": "eval:doc.enable_wastage_tracking"
+        },
+        {
+            "default": 1,
+            "fieldname": "track_actual_vs_expected",
+            "fieldtype": "Check",
+            "label": "Track Actual vs Expected Consumption",
+            "depends_on": "eval:doc.enable_wastage_tracking"
+        },
+        {
+            "fieldname": "nested_bom_section",
+            "fieldtype": "Section Break",
+            "label": "Nested BOM Handling"
+        },
+        {
+            "default": 1,
+            "fieldname": "enable_nested_bom_handling",
+            "fieldtype": "Check",
+            "label": "Enable Nested BOM Handling"
+        },
+        {
+            "default": 1,
+            "fieldname": "check_stock_before_manufacturing",
+            "fieldtype": "Check",
+            "label": "Check Stock Before Manufacturing",
+            "depends_on": "eval:doc.enable_nested_bom_handling"
+        },
+        {
+            "default": 1,
+            "fieldname": "create_nested_work_orders",
+            "fieldtype": "Check",
+            "label": "Create Nested Work Orders",
+            "depends_on": "eval:doc.enable_nested_bom_handling"
+        },
+        {
+            "fieldname": "return_handling_section",
+            "fieldtype": "Section Break",
+            "label": "Return Handling"
+        },
+        {
+            "default": 1,
+            "fieldname": "enable_return_handling",
+            "fieldtype": "Check",
+            "label": "Enable Return Handling"
+        },
+        {
+            "default": 1,
+            "fieldname": "create_reverse_entries",
+            "fieldtype": "Check",
+            "label": "Create Reverse Manufacturing Entries",
+            "depends_on": "eval:doc.enable_return_handling"
+        },
+        {
+            "default": 1,
+            "fieldname": "return_materials_to_warehouse",
+            "fieldtype": "Check",
+            "label": "Return Materials to Warehouse",
+            "depends_on": "eval:doc.enable_return_handling"
+        },
+        {
+            "fieldname": "cancellation_section",
+            "fieldtype": "Section Break",
+            "label": "Cancellation Handling"
+        },
+        {
+            "default": 1,
+            "fieldname": "enable_cancellation_handling",
+            "fieldtype": "Check",
+            "label": "Enable Cancellation Handling"
+        },
+        {
+            "default": 1,
+            "fieldname": "cancel_related_work_orders",
+            "fieldtype": "Check",
+            "label": "Cancel Related Work Orders",
+            "depends_on": "eval:doc.enable_cancellation_handling"
+        },
+        {
+            "default": 1,
+            "fieldname": "cancel_related_stock_entries",
+            "fieldtype": "Check",
+            "label": "Cancel Related Stock Entries",
+            "depends_on": "eval:doc.enable_cancellation_handling"
+        },
+        {
+            "fieldname": "logging_section",
+            "fieldtype": "Section Break",
+            "label": "Logging"
+        },
+        {
+            "default": 1,
+            "fieldname": "enable_logging",
+            "fieldtype": "Check",
+            "label": "Enable Logging"
+        },
+        {
+            "default": "INFO",
+            "fieldname": "log_level",
+            "fieldtype": "Select",
+            "label": "Log Level",
+            "options": "DEBUG\nINFO\nWARNING\nERROR",
+            "depends_on": "eval:doc.enable_logging"
+        },
+        {
+            "default": 1,
+            "fieldname": "log_manufacturing_entries",
+            "fieldtype": "Check",
+            "label": "Log Manufacturing Entries",
+            "depends_on": "eval:doc.enable_logging"
+        },
+        {
+            "default": 1,
+            "fieldname": "log_errors",
+            "fieldtype": "Check",
+            "label": "Log Errors",
+            "depends_on": "eval:doc.enable_logging"
+        },
+        {
+            "fieldname": "warehouse_section",
+            "fieldtype": "Section Break",
+            "label": "Warehouse Settings"
+        },
+        {
+            "default": 1,
+            "fieldname": "use_same_warehouse_for_wip",
+            "fieldtype": "Check",
+            "label": "Use Same Warehouse for WIP"
+        },
+        {
+            "fieldname": "default_wip_warehouse",
+            "fieldtype": "Link",
+            "label": "Default WIP Warehouse",
+            "options": "Warehouse",
+            "depends_on": "eval:!doc.use_same_warehouse_for_wip"
+        },
+        {
+            "fieldname": "default_fg_warehouse",
+            "fieldtype": "Link",
+            "label": "Default Finished Goods Warehouse",
+            "options": "Warehouse"
+        }
+    ],
+    "index_web_pages_for_search": 1,
+    "links": [],
+    "modified": "2024-01-01 00:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "POS Auto Manufacture",
+    "name": "POS Auto Manufacture Settings",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "System Manager",
+            "share": 1,
+            "write": 1
+        }
+    ],
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": [],
+    "track_changes": 1
+} 

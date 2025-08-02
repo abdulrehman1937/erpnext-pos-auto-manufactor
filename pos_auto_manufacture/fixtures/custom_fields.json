@@ -1,0 +1,87 @@
+[
+    {
+        "doctype": "Custom Field",
+        "name": "Sales Invoice-manufacturing_return_option",
+        "fieldname": "manufacturing_return_option",
+        "label": "Manufacturing Return Option",
+        "fieldtype": "Select",
+        "options": "Convert to Raw Materials\nKeep Manufactured Product\nReverse Manufacturing Process\nCancel Only",
+        "default": "Convert to Raw Materials",
+        "dt": "Sales Invoice",
+        "insert_after": "is_return",
+        "description": "How to handle manufacturing entries when cancelling or returning",
+        "hidden": 1
+    },
+    {
+        "doctype": "Custom Field",
+        "name": "Sales Invoice-check_stock_before_manufacturing",
+        "fieldname": "check_stock_before_manufacturing",
+        "label": "Check Stock Before Manufacturing",
+        "fieldtype": "Check",
+        "default": 1,
+        "dt": "Sales Invoice",
+        "insert_after": "manufacturing_return_option",
+        "description": "Check if raw materials are available before creating manufacturing entries",
+        "hidden": 1
+    },
+    {
+        "doctype": "Custom Field",
+        "name": "Sales Invoice-create_nested_work_orders",
+        "fieldname": "create_nested_work_orders",
+        "label": "Create Nested Work Orders",
+        "fieldtype": "Check",
+        "default": 1,
+        "dt": "Sales Invoice",
+        "insert_after": "check_stock_before_manufacturing",
+        "description": "Create separate work orders for nested BOM items",
+        "hidden": 1
+    },
+    {
+        "doctype": "Custom Field",
+        "name": "Sales Invoice-track_manufacturing_wastage",
+        "fieldname": "track_manufacturing_wastage",
+        "label": "Track Manufacturing Wastage",
+        "fieldtype": "Check",
+        "default": 1,
+        "dt": "Sales Invoice",
+        "insert_after": "create_nested_work_orders",
+        "description": "Create wastage tracking entries during manufacturing",
+        "hidden": 1
+    },
+    {
+        "doctype": "Custom Field",
+        "name": "Sales Invoice-wastage_percentage",
+        "fieldname": "wastage_percentage",
+        "label": "Default Wastage Percentage",
+        "fieldtype": "Float",
+        "default": 5.0,
+        "dt": "Sales Invoice",
+        "insert_after": "track_manufacturing_wastage",
+        "description": "Default wastage percentage for manufacturing",
+        "hidden": 1
+    },
+    {
+        "doctype": "Custom Field",
+        "name": "Sales Invoice-handle_wastage_on_return",
+        "fieldname": "handle_wastage_on_return",
+        "label": "Handle Wastage on Return",
+        "fieldtype": "Check",
+        "default": 1,
+        "dt": "Sales Invoice",
+        "insert_after": "wastage_percentage",
+        "description": "Include wastage handling in the return process",
+        "hidden": 1
+    },
+    {
+        "doctype": "Custom Field",
+        "name": "Sales Invoice-handle_wastage_on_cancel",
+        "fieldname": "handle_wastage_on_cancel",
+        "label": "Handle Wastage on Cancellation",
+        "fieldtype": "Check",
+        "default": 1,
+        "dt": "Sales Invoice",
+        "insert_after": "handle_wastage_on_return",
+        "description": "Include wastage handling in the cancellation process",
+        "hidden": 1
+    }
+] 

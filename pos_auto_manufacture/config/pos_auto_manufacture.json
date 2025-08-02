@@ -1,0 +1,36 @@
+{
+    "pos_auto_manufacture_settings": {
+        "wastage_tracking": {
+            "enabled": true,
+            "default_wastage_percentage": 5.0,
+            "wastage_item_field": "wastage_item",
+            "track_actual_vs_expected": true
+        },
+        "nested_bom_handling": {
+            "enabled": true,
+            "check_stock_before_manufacturing": true,
+            "create_nested_work_orders": true
+        },
+        "return_handling": {
+            "enabled": true,
+            "create_reverse_entries": true,
+            "return_materials_to_warehouse": true
+        },
+        "cancellation_handling": {
+            "enabled": true,
+            "cancel_related_work_orders": true,
+            "cancel_related_stock_entries": true
+        },
+        "logging": {
+            "enabled": true,
+            "log_level": "INFO",
+            "log_manufacturing_entries": true,
+            "log_errors": true
+        },
+        "warehouse_settings": {
+            "use_same_warehouse_for_wip": true,
+            "default_wip_warehouse": "",
+            "default_fg_warehouse": ""
+        }
+    }
+} 

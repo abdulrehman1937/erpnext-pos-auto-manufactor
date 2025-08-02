@@ -10,16 +10,60 @@ app_license = "mit"
 
 # required_apps = []
 
-# Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "pos_auto_manufacture",
-# 		"logo": "/assets/pos_auto_manufacture/logo.png",
-# 		"title": "Pos Auto Manufacture",
-# 		"route": "/pos_auto_manufacture",
-# 		"has_permission": "pos_auto_manufacture.api.permission.has_app_permission"
-# 	}
-# ]
+# Document Events
+doc_events = {
+    "Sales Invoice": {
+        "before_validate": "pos_auto_manufacture.pos_auto_manufacture.create_manufacture_entry_from_pos",
+        "on_cancel": "pos_auto_manufacture.pos_auto_manufacture.handle_pos_return_or_cancel",
+        "on_update_after_submit": "pos_auto_manufacture.pos_auto_manufacture.handle_pos_return_or_cancel"
+    },
+    "Stock Entry": {
+        "on_submit": "pos_auto_manufacture.pos_auto_manufacture.track_manufacturing_wastage"
+    }
+}
+
+# Custom Fields
+fixtures = [
+    {
+        "doctype": "Custom Field",
+        "filters": [
+            [
+                "name",
+                "in",
+                [
+                    "Sales Invoice-manufacturing_return_option",
+                    "Sales Invoice-check_stock_before_manufacturing",
+                    "Sales Invoice-create_nested_work_orders",
+                    "Sales Invoice-track_manufacturing_wastage",
+                    "Sales Invoice-wastage_percentage",
+                    "Sales Invoice-handle_wastage_on_return",
+                    "Sales Invoice-handle_wastage_on_cancel"
+                ]
+            ]
+        ]
+    },
+    {
+        "doctype": "POS Auto Manufacture Settings",
+        "filters": [
+            [
+                "name",
+                "=",
+                "POS Auto Manufacture Settings"
+            ]
+        ]
+    }
+]
+
+# Each item in the list will be shown as an app in the pages
+add_to_apps_screen = [
+	{
+		"name": "pos_auto_manufacture",
+		"logo": "/assets/pos_auto_manufacture/logo.png",
+		"title": "Pos Auto Manufacture",
+		"route": "/pos_auto_manufacture",
+		"has_permission": "pos_auto_manufacture.api.permission.has_app_permission"
+	}
+]
 
 # Includes in <head>
 # ------------------
@@ -27,7 +71,10 @@ app_license = "mit"
 # include js, css files in header of desk.html
 # app_include_css = "/assets/pos_auto_manufacture/css/pos_auto_manufacture.css"
 # app_include_js = "/assets/pos_auto_manufacture/js/pos_auto_manufacture.js"
-app_include_js = "/assets/pos_auto_manufacture/js/pos_invoice.js"
+app_include_js = [
+    "/assets/pos_auto_manufacture/js/pos_invoice.js",
+    "/assets/pos_auto_manufacture/js/sales_invoice.js"
+]
 
 # include js, css files in header of web template
 # web_include_css = "/assets/pos_auto_manufacture/css/pos_auto_manufacture.css"
@@ -87,12 +134,12 @@ app_include_js = "/assets/pos_auto_manufacture/js/pos_invoice.js"
 # ------------
 
 # before_install = "pos_auto_manufacture.install.before_install"
-# after_install = "pos_auto_manufacture.install.after_install"
+after_install = "pos_auto_manufacture.install.after_install"
 
 # Uninstallation
 # ------------
 
-# before_uninstall = "pos_auto_manufacture.uninstall.before_uninstall"
+before_uninstall = "pos_auto_manufacture.install.before_uninstall"
 # after_uninstall = "pos_auto_manufacture.uninstall.after_uninstall"
 
 # Integration Setup
@@ -140,12 +187,6 @@ app_include_js = "/assets/pos_auto_manufacture/js/pos_invoice.js"
 # 		"on_trash": "method"
 # 	}
 # }
-# This hook links the server-side function to the 'on_submit' event of the Sales Invoice.
-doc_events = {
-    "Sales Invoice": {
-        "on_submit": "pos_auto_manufacture.automanufacture.manufacturing_handler.create_manufacture_entry_from_pos"
-    }
-}
 
 # Scheduled Tasks
 # ---------------

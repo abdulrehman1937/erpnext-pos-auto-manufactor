@@ -1,0 +1,53 @@
+{
+    "actions": [],
+    "allow_rename": 1,
+    "creation": "2024-01-01 00:00:00.000000",
+    "doctype": "DocType",
+    "engine": "InnoDB",
+    "field_order": [
+        "manufacturing_return_section",
+        "manufacturing_return_option"
+    ],
+    "fields": [
+        {
+            "fieldname": "manufacturing_return_section",
+            "fieldtype": "Section Break",
+            "label": "Manufacturing Return Options",
+            "depends_on": "eval:doc.is_return || doc.docstatus == 2"
+        },
+        {
+            "fieldname": "manufacturing_return_option",
+            "fieldtype": "Select",
+            "label": "Manufacturing Return Option",
+            "options": "Convert to Raw Materials\nKeep Manufactured Product",
+            "default": "Convert to Raw Materials",
+            "depends_on": "eval:doc.is_return || doc.docstatus == 2",
+            "description": "Choose how to handle manufacturing entries when cancelling or returning"
+        }
+    ],
+    "index_web_pages_for_search": 1,
+    "links": [],
+    "modified": "2024-01-01 00:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "POS Auto Manufacture",
+    "name": "Sales Invoice",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "export": 1,
+            "print": 1,
+            "read": 1,
+            "report": 1,
+            "role": "System Manager",
+            "share": 1,
+            "write": 1
+        }
+    ],
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": [],
+    "track_changes": 1
+} 
