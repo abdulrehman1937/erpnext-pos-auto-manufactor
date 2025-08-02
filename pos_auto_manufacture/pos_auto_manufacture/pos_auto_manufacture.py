@@ -185,10 +185,10 @@ def create_manufacture_entry_from_pos(doc, method):
         frappe.logger().info(f"{log_prefix} Found {len(manufacture_items)} manufacturable items")
 
         # Check stock availability but don't block if low stock (just warn)
-        try:
-            check_stock_availability_with_warning(doc, manufacture_items)
-        except Exception as e:
-            frappe.log_error(f"Stock availability check failed: {str(e)}", "POS Auto-Manufacture Stock Check Error")
+        #try:
+        #    check_stock_availability_with_warning(doc, manufacture_items)
+        #except Exception as e:
+        #    frappe.log_error(f"Stock availability check failed: {str(e)}", "POS Auto-Manufacture Stock Check Error")
 
         # Only create and submit manufacturing entries when document is being submitted
         if hasattr(doc, 'docstatus') and doc.docstatus == 1:
