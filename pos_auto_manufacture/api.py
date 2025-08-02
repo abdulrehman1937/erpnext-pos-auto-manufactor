@@ -3,6 +3,10 @@ from frappe import _
 from frappe.utils import flt, now_datetime
 from . import pos_auto_manufacture
 from . import utils
+from .api import stock_checker
+
+# Add the whitelist decorator to the check_bom_stock_levels function
+stock_checker.check_bom_stock_levels = frappe.whitelist()(stock_checker.check_bom_stock_levels)
 
 @frappe.whitelist()
 def create_manufacturing_for_pos_invoice(sales_invoice_name):
@@ -364,66 +368,18 @@ def get_manufacturing_report(start_date=None, end_date=None, item_code=None):
             "message": f"Error generating report: {str(e)}"
         }
 
+# Also expose the function directly in the main API module for backward compatibility
 @frappe.whitelist()
 def check_bom_stock_levels(item_code, qty, warehouse=None):
     """
-    Check stock levels for BOM items
+    Check BOM stock levels for an item and return low stock warnings
     
     Args:
         item_code (str): Item code to check
-        qty (float): Quantity to manufacture
-        warehouse (str): Warehouse to check stock in
+        qty (float): Quantity required
+        warehouse (str): Warehouse to check (optional)
         
     Returns:
         list: List of items with low stock
     """
-    try:
-        # Get the BOM for the item
-        bom_no = frappe.db.get_value("Item", item_code, "default_bom")
-        if not bom_no:
-            return []
-        
-        # Get BOM items
-        bom_items = frappe.db.get_all(
-            "BOM Item",
-            filters={"parent": bom_no},
-            fields=["item_code", "qty", "uom"]
-        )
-        
-        low_stock_items = []
-        
-        for item in bom_items:
-            required_qty = flt(item.qty) * flt(qty)
-            
-            # Get available stock
-            if warehouse:
-                available_qty = flt(frappe.db.get_value(
-                    "Bin",
-                    {"item_code": item.item_code, "warehouse": warehouse},
-                    "actual_qty"
-                ) or 0)
-            else:
-                # Get total stock across all warehouses
-                available_qty = flt(frappe.db.get_value(
-                    "Bin",
-                    {"item_code": item.item_code},
-                    "sum(actual_qty)"
-                ) or 0)
-            
-            # Check if stock is insufficient
-            if available_qty < required_qty:
-                item_name = frappe.db.get_value("Item", item.item_code, "item_name")
-                low_stock_items.append({
-                    "item_code": item.item_code,
-                    "item_name": item_name,
-                    "required": required_qty,
-                    "available": available_qty,
-                    "uom": item.uom,
-                    "shortage": required_qty - available_qty
-                })
-        
-        return low_stock_items
-        
-    except Exception as e:
-        frappe.log_error(f"Stock Check Error: {str(e)}")
-        return [] 
+    return stock_checker.check_bom_stock_levels(item_code, qty, warehouse) 

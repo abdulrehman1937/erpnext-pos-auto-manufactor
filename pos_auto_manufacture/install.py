@@ -184,6 +184,9 @@ def create_pos_auto_manufacture_settings():
                     "wastage_percentage",
                     "handle_wastage_on_return",
                     "handle_wastage_on_cancel",
+                    "warehouse_settings_section",
+                    "source_warehouse",
+                    "target_warehouse",
                     "return_settings_section",
                     "manufacturing_return_option"
                 ],
@@ -251,6 +254,25 @@ def create_pos_auto_manufacture_settings():
                         "depends_on": "eval:doc.track_manufacturing_wastage"
                     },
                     {
+                        "fieldname": "warehouse_settings_section",
+                        "fieldtype": "Section Break",
+                        "label": "Warehouse Settings"
+                    },
+                    {
+                        "fieldname": "source_warehouse",
+                        "fieldtype": "Link",
+                        "label": "Source Warehouse (Raw Materials)",
+                        "options": "Warehouse",
+                        "description": "Warehouse where raw materials are stored"
+                    },
+                    {
+                        "fieldname": "target_warehouse",
+                        "fieldtype": "Link",
+                        "label": "Target Warehouse (Finished Products)",
+                        "options": "Warehouse",
+                        "description": "Warehouse where finished products will be stored"
+                    },
+                    {
                         "fieldname": "return_settings_section",
                         "fieldtype": "Section Break",
                         "label": "Return Settings"
@@ -299,7 +321,9 @@ def create_pos_auto_manufacture_settings():
                 "wastage_percentage": 5.0,
                 "handle_wastage_on_return": 1,
                 "handle_wastage_on_cancel": 1,
-                "manufacturing_return_option": "Create Return Stock Entry"
+                "manufacturing_return_option": "Create Return Stock Entry",
+                "source_warehouse": "",
+                "target_warehouse": ""
             })
             settings_doc.insert()
             frappe.db.commit()

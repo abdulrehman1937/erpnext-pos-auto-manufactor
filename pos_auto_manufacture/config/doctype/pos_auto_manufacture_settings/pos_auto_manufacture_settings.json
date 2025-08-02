@@ -31,7 +31,9 @@
         "warehouse_section",
         "use_same_warehouse_for_wip",
         "default_wip_warehouse",
-        "default_fg_warehouse"
+        "default_fg_warehouse",
+        "source_warehouse",
+        "target_warehouse"
     ],
     "fields": [
         {
@@ -197,6 +199,20 @@
             "fieldtype": "Link",
             "label": "Default Finished Goods Warehouse",
             "options": "Warehouse"
+        },
+        {
+            "fieldname": "source_warehouse",
+            "fieldtype": "Link",
+            "label": "Source Warehouse (Raw Materials)",
+            "options": "Warehouse",
+            "description": "Warehouse where raw materials are stored"
+        },
+        {
+            "fieldname": "target_warehouse",
+            "fieldtype": "Link",
+            "label": "Target Warehouse (Finished Products)",
+            "options": "Warehouse",
+            "description": "Warehouse where finished products will be stored"
         }
     ],
     "index_web_pages_for_search": 1,

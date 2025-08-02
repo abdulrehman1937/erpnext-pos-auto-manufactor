@@ -27,7 +27,9 @@ def ensure_settings_exist():
             "wastage_percentage": 5.0,
             "handle_wastage_on_return": 1,
             "handle_wastage_on_cancel": 1,
-            "manufacturing_return_option": "Create Return Stock Entry"
+            "manufacturing_return_option": "Create Return Stock Entry",
+            "source_warehouse": "",
+            "target_warehouse": ""
         })
         settings_doc.insert()
         frappe.db.commit()
@@ -104,6 +106,24 @@ def get_manufacturing_return_option():
         return settings.manufacturing_return_option if settings else "Create Return Stock Entry"
     except:
         return "Create Return Stock Entry"
+
+
+def get_source_warehouse():
+    """Get the source warehouse setting for raw materials"""
+    try:
+        settings = get_settings()
+        return settings.source_warehouse if settings else ""
+    except:
+        return ""
+
+
+def get_target_warehouse():
+    """Get the target warehouse setting for finished products"""
+    try:
+        settings = get_settings()
+        return settings.target_warehouse if settings else ""
+    except:
+        return ""
 
 
 def validate_settings():

@@ -2,6 +2,7 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
+
 @frappe.whitelist()
 def check_bom_stock_levels(item_code, qty, warehouse=None):
     """
@@ -9,119 +10,67 @@ def check_bom_stock_levels(item_code, qty, warehouse=None):
     
     Args:
         item_code (str): Item code to check
-        qty (float): Quantity required
+        qty (float/str): Quantity required
         warehouse (str): Warehouse to check (optional)
         
     Returns:
-        list: List of items with low stock
+        list: List of items with low stock (only basic raw materials)
     """
     try:
+        # Convert qty to float
+        qty = flt(qty)
+        if qty <= 0:
+            return []
+        
+        # Validate item exists
+        if not frappe.db.exists("Item", item_code):
+            return []
+        
         # Get the BOM for the item
         bom_no = frappe.db.get_value("Item", item_code, "default_bom")
         if not bom_no:
             return []
         
-        # Calculate total materials required
-        materials_required = calculate_total_materials_required(bom_no, qty)
-        
-        # Get default warehouse if not specified
+        # Get source warehouse from settings if not specified
         if not warehouse:
-            warehouse = get_warehouse_for_item(item_code)
+            warehouse = get_source_warehouse_from_settings()
             if not warehouse:
                 return []
+        
+        # Calculate total materials required with recursive optimization
+        materials_required = calculate_optimized_materials_required(bom_no, qty, warehouse)
+        if not materials_required:
+            return []
         
         # Check stock availability
         stock_status = check_stock_availability(materials_required, warehouse)
         insufficient_materials = get_insufficient_materials(stock_status)
         
         # Format the response for the frontend
-        low_stock_items = []
-        for material in insufficient_materials:
-            item_doc = frappe.get_doc("Item", material["item_code"])
-            low_stock_items.append({
-                "item_code": material["item_code"],
-                "item_name": item_doc.item_name,
-                "required": material["required"],
-                "available": material["available"],
-                "shortage": material["shortage"],
-                "uom": item_doc.stock_uom
-            })
-        
-        return low_stock_items
+        return format_low_stock_response(insufficient_materials)
         
     except Exception as e:
-        frappe.log_error(f"Stock checker error: {str(e)}")
+        frappe.log_error(f"Stock checker error for item {item_code}: {str(e)}")
         return []
 
-@frappe.whitelist()
-def get_manufacturing_summary(item_code, qty, warehouse=None):
-    """
-    Get a summary of manufacturing requirements for an item
-    
-    Args:
-        item_code (str): Item code to check
-        qty (float): Quantity required
-        warehouse (str): Warehouse to check (optional)
-        
-    Returns:
-        dict: Manufacturing summary
-    """
-    try:
-        # Get the BOM for the item
-        bom_no = frappe.db.get_value("Item", item_code, "default_bom")
-        if not bom_no:
-            return {
-                "can_manufacture": False,
-                "message": "No BOM found for this item"
-            }
-        
-        # Calculate total materials required
-        materials_required = calculate_total_materials_required(bom_no, qty)
-        
-        # Get default warehouse if not specified
-        if not warehouse:
-            warehouse = get_warehouse_for_item(item_code)
-            if not warehouse:
-                return {
-                    "can_manufacture": False,
-                    "message": "No warehouse specified"
-                }
-        
-        # Check stock availability
-        stock_status = check_stock_availability(materials_required, warehouse)
-        insufficient_materials = get_insufficient_materials(stock_status)
-        
-        # Calculate summary
-        total_materials = len(materials_required)
-        insufficient_count = len(insufficient_materials)
-        sufficient_count = total_materials - insufficient_count
-        
-        return {
-            "can_manufacture": True,
-            "total_materials": total_materials,
-            "sufficient_materials": sufficient_count,
-            "insufficient_materials": insufficient_count,
-            "materials_required": materials_required,
-            "stock_status": stock_status,
-            "insufficient_items": insufficient_materials
-        }
-        
-    except Exception as e:
-        frappe.log_error(f"Manufacturing summary error: {str(e)}")
-        return {
-            "can_manufacture": False,
-            "message": f"Error calculating manufacturing requirements: {str(e)}"
-        }
 
-def get_warehouse_for_item(item_code, default_warehouse=None):
+def get_source_warehouse_from_settings():
+    """Get source warehouse from POS Auto Manufacture Settings"""
+    try:
+        from ..utils.settings import get_source_warehouse
+        return get_source_warehouse()
+    except ImportError:
+        # Fallback to default warehouse logic
+        return get_default_warehouse()
+
+
+def get_default_warehouse(item_code=None):
     """Get appropriate warehouse for an item"""
-    if default_warehouse:
-        return default_warehouse
-    
     # Try to get from item's default warehouse
-    item_warehouse = frappe.db.get_value("Item", item_code, "default_warehouse")
-    if item_warehouse:
-        return item_warehouse
+    if item_code:
+        item_warehouse = frappe.db.get_value("Item", item_code, "default_warehouse")
+        if item_warehouse:
+            return item_warehouse
     
     # Get from company's default warehouse
     company = frappe.defaults.get_global_default("company")
@@ -132,72 +81,140 @@ def get_warehouse_for_item(item_code, default_warehouse=None):
     
     return None
 
-def calculate_total_materials_required(bom_no, qty):
-    """Calculate total materials required including nested manufacturing"""
-    bom_structure = get_nested_bom_structure(bom_no)
-    materials_required = {}
-    
-    def process_bom_items(items, multiplier=1):
-        for item in items:
-            item_qty = flt(item["qty"]) * multiplier
-            
-            if item["item_code"] in materials_required:
-                materials_required[item["item_code"]] += item_qty
-            else:
-                materials_required[item["item_code"]] = item_qty
-            
-            # Process nested items if this is a manufacturing item
-            if item.get("is_manufacturing") and item.get("nested_items"):
-                process_bom_items(item["nested_items"], item_qty)
-    
-    process_bom_items(bom_structure, qty)
-    return materials_required
 
-def get_nested_bom_structure(bom_no, max_depth=5, current_depth=0):
-    """Get complete BOM structure including nested manufacturing items"""
+def calculate_optimized_materials_required(bom_no, qty, warehouse, max_depth=5, current_depth=0):
+    """
+    Calculate total materials required with recursive optimization
+    Only includes basic raw materials, excludes intermediate products that can be manufactured
+    
+    Args:
+        bom_no (str): BOM number
+        qty (float): Quantity to manufacture
+        warehouse (str): Warehouse to check stock
+        max_depth (int): Maximum recursion depth
+        current_depth (int): Current recursion depth
+        
+    Returns:
+        dict: Dictionary with item_code as key and required quantity as value (only basic materials)
+    """
     if current_depth >= max_depth:
-        return []
+        return {}
     
-    bom_items = frappe.db.get_all(
-        "BOM Item",
-        filters={"parent": bom_no},
-        fields=["item_code", "qty", "bom_no"]
-    )
-    
-    nested_structure = []
-    for item in bom_items:
-        item_data = {
-            "item_code": item["item_code"],
-            "qty": flt(item["qty"]),
-            "depth": current_depth,
-            "is_manufacturing": False,
-            "nested_bom": None
-        }
+    try:
+        # Get BOM items
+        bom_items = frappe.db.get_all(
+            "BOM Item",
+            filters={"parent": bom_no},
+            fields=["item_code", "qty"]
+        )
         
-        # Check if this item is itself a manufacturing item
-        nested_bom = frappe.db.get_value("Item", item["item_code"], "default_bom")
-        if nested_bom:
-            item_data["is_manufacturing"] = True
-            item_data["nested_bom"] = nested_bom
+        if not bom_items:
+            return {}
+        
+        materials_required = {}
+        
+        for item in bom_items:
+            item_code = item["item_code"]
+            required_qty = flt(item["qty"]) * qty
             
-            # Recursively get nested structure
-            nested_items = get_nested_bom_structure(nested_bom, max_depth, current_depth + 1)
-            item_data["nested_items"] = nested_items
+            # Check current stock of this item in source warehouse
+            current_stock = get_item_stock_in_source_warehouse(item_code, warehouse)
+            
+            # Check if this item is a manufacturing item
+            nested_bom = frappe.db.get_value("Item", item_code, "default_bom")
+            
+            if nested_bom and current_stock < required_qty:
+                # This is a manufacturing item with insufficient stock
+                # Calculate how much more we need to manufacture
+                additional_needed = required_qty - current_stock
+                
+                # Recursively get materials needed for the additional quantity
+                nested_materials = calculate_optimized_materials_required(
+                    nested_bom, additional_needed, warehouse, max_depth, current_depth + 1
+                )
+                
+                # Add nested materials to our requirements
+                for nested_item_code, nested_qty in nested_materials.items():
+                    if nested_item_code in materials_required:
+                        materials_required[nested_item_code] += nested_qty
+                    else:
+                        materials_required[nested_item_code] = nested_qty
+                        
+            elif not nested_bom:
+                # This is a basic raw material, add to requirements
+                if item_code in materials_required:
+                    materials_required[item_code] += required_qty
+                else:
+                    materials_required[item_code] = required_qty
         
-        nested_structure.append(item_data)
+        return materials_required
+        
+    except Exception as e:
+        frappe.log_error(f"Error calculating optimized materials for BOM {bom_no}: {str(e)}")
+        return {}
+
+
+def get_item_stock_in_source_warehouse(item_code, warehouse):
+    """
+    Get current stock of an item in the source warehouse
     
-    return nested_structure
+    Args:
+        item_code (str): Item code
+        warehouse (str): Source warehouse
+        
+    Returns:
+        float: Available quantity
+    """
+    # Use source warehouse from settings if available
+    source_warehouse = get_source_warehouse_from_settings()
+    if source_warehouse:
+        warehouse = source_warehouse
+    
+    return flt(frappe.db.get_value(
+        "Bin",
+        {"item_code": item_code, "warehouse": warehouse},
+        "actual_qty"
+    ) or 0)
+
 
 def check_stock_availability(materials_required, warehouse):
-    """Check if required materials are available in stock"""
-    stock_status = {}
+    """
+    Check if required materials are available in stock
     
+    Args:
+        materials_required (dict): Dictionary with item_code as key and required quantity as value
+        warehouse (str): Warehouse to check
+        
+    Returns:
+        dict: Stock status for each item
+    """
+    if not materials_required:
+        return {}
+    
+    # Get all item codes
+    item_codes = list(materials_required.keys())
+    
+    # Use source warehouse from settings
+    source_warehouse = get_source_warehouse_from_settings()
+    if source_warehouse:
+        warehouse = source_warehouse
+    
+    # Batch query for stock levels
+    stock_data = frappe.db.get_all(
+        "Bin",
+        filters={
+            "item_code": ["in", item_codes],
+            "warehouse": warehouse
+        },
+        fields=["item_code", "actual_qty"]
+    )
+    
+    # Create lookup dictionary
+    stock_lookup = {item["item_code"]: flt(item["actual_qty"]) for item in stock_data}
+    
+    stock_status = {}
     for item_code, required_qty in materials_required.items():
-        available_qty = flt(frappe.db.get_value(
-            "Bin",
-            {"item_code": item_code, "warehouse": warehouse},
-            "actual_qty"
-        ) or 0)
+        available_qty = stock_lookup.get(item_code, 0)
         
         stock_status[item_code] = {
             "required": required_qty,
@@ -208,8 +225,17 @@ def check_stock_availability(materials_required, warehouse):
     
     return stock_status
 
+
 def get_insufficient_materials(stock_status):
-    """Get list of materials with insufficient stock"""
+    """
+    Get list of materials with insufficient stock
+    
+    Args:
+        stock_status (dict): Stock status dictionary
+        
+    Returns:
+        list: List of insufficient materials
+    """
     insufficient = []
     
     for item_code, status in stock_status.items():
@@ -222,3 +248,46 @@ def get_insufficient_materials(stock_status):
             })
     
     return insufficient
+
+
+def format_low_stock_response(insufficient_materials):
+    """
+    Format the response for the frontend
+    
+    Args:
+        insufficient_materials (list): List of insufficient materials
+        
+    Returns:
+        list: Formatted response for frontend
+    """
+    if not insufficient_materials:
+        return []
+    
+    # Get all item codes for batch query
+    item_codes = [item["item_code"] for item in insufficient_materials]
+    
+    # Batch query for item details
+    item_details = frappe.db.get_all(
+        "Item",
+        filters={"name": ["in", item_codes]},
+        fields=["name", "item_name", "stock_uom"]
+    )
+    
+    # Create lookup dictionary
+    item_lookup = {item["name"]: item for item in item_details}
+    
+    low_stock_items = []
+    for material in insufficient_materials:
+        item_code = material["item_code"]
+        item_detail = item_lookup.get(item_code, {})
+        
+        low_stock_items.append({
+            "item_code": item_code,
+            "item_name": item_detail.get("item_name", item_code),
+            "required": material["required"],
+            "available": material["available"],
+            "shortage": material["shortage"],
+            "uom": item_detail.get("stock_uom", "")
+        })
+    
+    return low_stock_items
