@@ -352,11 +352,12 @@ def create_manufacture_entry_from_pos(doc, method):
             frappe.logger().info(f"{log_prefix} Auto manufacturing is disabled, skipping")
             return
 
-        # Check if manufacturing entries already exist for this Sales Invoice
-        existing_entries = check_existing_manufacturing_entries(doc)
-        if existing_entries:
-            frappe.logger().info(f"{log_prefix} Manufacturing entries already exist, skipping")
-            return
+        # Check if manufacturing entries already exist for this Sales Invoice (for logging purposes only)
+        # We no longer skip manufacturing outright when entries are detected. Instead, we log the presence
+        # of prior entries and rely on stock-level checks later in the process to decide whether additional
+        # manufacturing is required. This prevents scenarios where new sales consume inventory even though
+        # previous Work Orders / Stock Entries exist for the same item on the same day.
+        check_existing_manufacturing_entries(doc)
 
         manufacture_items = get_manufacturable_items(doc)
         if not manufacture_items:
